@@ -1,0 +1,22 @@
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+
+// Redirect only Google's Android Maven repository for this invocation.
+// Init scripts also cover Flutter's included Gradle build.
+def useGoogleMirror = { repositories ->
+    repositories.withType(MavenArtifactRepository).configureEach { repository ->
+        if (repository.url.host == 'dl.google.com' &&
+                repository.url.path.contains('android/maven2')) {
+            repository.setUrl('https://maven.aliyun.com/repository/google')
+        }
+    }
+}
+
+gradle.beforeSettings { settings ->
+    useGoogleMirror(settings.pluginManagement.repositories)
+    useGoogleMirror(settings.dependencyResolutionManagement.repositories)
+}
+
+gradle.beforeProject { project ->
+    useGoogleMirror(project.repositories)
+    useGoogleMirror(project.buildscript.repositories)
+}
