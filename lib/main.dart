@@ -35,7 +35,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int selectedTab = 0;
   final prefs = SharedPreferencesAsync();
-  bool isLoadingTodos = true;
+  bool isLoadingEvents = true, isLoadingTodos = true;
 
   final List<ScheduleEvent> events = [
     ScheduleEvent(
@@ -53,6 +53,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     loadTodos();
+    loadEvents();
   }
 
   Future<void> addEvent() async {
@@ -145,6 +146,49 @@ class _HomePageState extends State<HomePage> {
     events.sort((a, b) {
       return a.startTime.compareTo(b.startTime);
     });
+
+    await saveEvents();
+  }
+
+  Future<void> saveEvents() async {
+    final data = <Map<String, dynamic>>[];
+    for(final event in events) {
+      data.add(event.toJson());
+    }
+
+    final jsonText = jsonEncode(data);
+
+    await prefs.setString('events', jsonText);
+
+    debugPrint("日程保存调用已完成");
+  }
+
+  Future<void> loadEvents() async {
+    final jsonText = await prefs.getString('events');
+
+    if(!mounted) {
+      return;
+    }
+
+    if(jsonText == null) {
+      setState( () {
+        isLoadingEvents = false;
+      });
+      return;
+    }
+
+    final data = jsonDecode(jsonText) as List<dynamic>;
+
+    final restoredEvents = <ScheduleEvent>[];
+    for (final item in data) {
+      restoredEvents.add(ScheduleEvent.fromJson(item as Map<String, dynamic>));
+    }
+
+    setState(() {
+      events.clear();
+      events.addAll(restoredEvents);
+      isLoadingEvents = false;
+    });
   }
 
   Future<void> addTodo() async {
@@ -195,7 +239,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> saveTodos() async {
-    final data = todos.map((todo) => todo.toJson()).toList();
+    final data = <Map<String, dynamic>>[];
+    for (final todo in todos) {
+      data.add(todo.toJson());
+    }
+
     final jsonText = jsonEncode(data);
 
     await prefs.setString('todos', jsonText);
@@ -219,9 +267,10 @@ class _HomePageState extends State<HomePage> {
 
     final data = jsonDecode(jsonText) as List<dynamic>;
 
-    final restoredTodos = data.map((item) {
-      return Todo.fromJson(item as Map<String, dynamic>);
-    }).toList();
+    final restoredTodos = <Todo>[];
+    for (final item in data) {
+      restoredTodos.add(Todo.fromJson(item as Map<String, dynamic>));
+    }
 
     setState(() {
       todos.clear();
@@ -233,13 +282,14 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final isSchedule = selectedTab == 0;
+    final isLoading = isSchedule ? isLoadingEvents : isLoadingTodos;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(selectedTab == 0 ? '日程' : '代办'),
+        title: Text(isSchedule ? '日程' : '代办'),
       ),
 
-      body: isLoadingTodos
+      body: isLoading
           ? const Center(
               child: CircularProgressIndicator(),
             )
@@ -250,8 +300,9 @@ class _HomePageState extends State<HomePage> {
           final title = isSchedule ? events[index].title : todos[index].title;
           return Card(
             child: ListTile(
+              horizontalTitleGap: 4,
               leading: isSchedule
-                ? const Icon(Icons.event)
+                ? const Icon(Icons.circle, size: 8)
                 : Checkbox(
                   value: todos[index].isDone,
                   onChanged: (value) async {
@@ -279,7 +330,9 @@ class _HomePageState extends State<HomePage> {
                                 todos.removeAt(index);
                               }
                             });
-                            if (!isSchedule) {
+                            if (isSchedule) {
+                              await saveEvents();
+                            } else {
                               await saveTodos();
                             }
                           },
@@ -289,7 +342,7 @@ class _HomePageState extends State<HomePage> {
         },
       ),
 
-      floatingActionButton: isLoadingTodos
+      floatingActionButton: isLoading
           ? null
           : FloatingActionButton(
         onPressed: isSchedule ? addEvent : addTodo,
