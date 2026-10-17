@@ -231,8 +231,51 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
+    // 默认没有截止时间。
+    DateTime? deadline;
+
+    final now = DateTime.now();
+
+    final date = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 5, 12, 31),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+// 只有选择了日期，才继续选择时间。
+    if (date != null) {
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      // 日期和时间都选好了，才设置截止时间。
+      if (time != null) {
+        deadline = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time.hour,
+          time.minute,
+        );
+      }
+    }
+
     setState(() {
-      todos.add(Todo(title: result));
+      todos.add(
+        Todo(
+          title: result,
+          deadline: deadline,
+        ));
     });
 
     await saveTodos();
@@ -245,6 +288,9 @@ class _HomePageState extends State<HomePage> {
     }
 
     final jsonText = jsonEncode(data);
+
+    debugPrint(data.toString());
+    debugPrint(jsonText);
 
     await prefs.setString('todos', jsonText);
 
@@ -318,7 +364,9 @@ class _HomePageState extends State<HomePage> {
               title: Text(title),
               subtitle: isSchedule
                   ? Text(formatDateTime(events[index].startTime))
-                  : null,
+                  : todos[index].deadline == null
+                    ? null
+                    : Text('截止：${formatDateTime(todos[index].deadline!)}'),
               trailing: IconButton(
                           icon: const Icon(Icons.delete_outline),
                           tooltip: '删除',
