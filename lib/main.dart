@@ -204,7 +204,7 @@ class _HomePageState extends State<HomePage> {
         return StatefulBuilder(
             builder: (context, setDialogState) {
               return AlertDialog(
-                title: const Text('新增代办'),
+                title: const Text('新增待办'),
                 content: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -213,7 +213,7 @@ class _HomePageState extends State<HomePage> {
                       TextField(
                         autofocus: true,
                         decoration: const InputDecoration(
-                          hintText: '输入代办内容'
+                          hintText: '输入待办内容'
                         ),
                         onChanged: (value) {
                           setDialogState(() {
@@ -380,7 +380,7 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isSchedule ? '日程' : '代办'),
+        title: Text(isSchedule ? '日程' : '待办'),
         actions: [
           IconButton(
             icon: const Icon(Icons.menu),
