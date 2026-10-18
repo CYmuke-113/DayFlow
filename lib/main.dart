@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -195,81 +196,126 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> addTodo() async {
     String input = '';
+    DateTime? deadline;
 
     final result = await showDialog<String>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('新增待办'),
-          content: TextField(
-            autofocus: true,
-            decoration: const InputDecoration(
-              hintText: '输入待办内容',
-            ),
-            onChanged: (value) {
-              input = value;
-            },
-            onSubmitted: (value) {
-              Navigator.pop(dialogContext, value.trim());
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(dialogContext, input.trim());
-              },
-              child: const Text('添加'),
-            ),
-          ],
+        return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Text('新增代办'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          hintText: '输入代办内容'
+                        ),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            input = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      const Text('截止时间（可选）'),
+                      Row(
+                        children: [
+                          Expanded(
+                              child: TextButton.icon(
+                                  icon: const Icon(Icons.calendar_month),
+                                  label: Text(
+                                    deadline == null
+                                        ? '不设置'
+                                        : formatDateTime(deadline!)
+                                  ),
+                                  onPressed: () async {
+                                    final now = DateTime.now();
+
+                                    final date = await showDatePicker(
+                                        context: context,
+                                        initialDate: deadline == null
+                                          || deadline!.isBefore(now)
+                                          ? now
+                                          :deadline,
+                                        firstDate: now,
+                                        lastDate: DateTime(
+                                          now.year + 5,
+                                          12,
+                                          31
+                                        )
+                                    );
+
+                                    if (!context.mounted || date == null) {
+                                      return;
+                                    }
+
+                                    final time = await showTimePicker(
+                                        context: context,
+                                        initialTime: deadline == null
+                                          ? TimeOfDay.fromDateTime(now)
+                                          : TimeOfDay.fromDateTime(deadline!)
+                                    );
+
+                                    if (!context.mounted || time == null) {
+                                      return;
+                                    }
+
+                                    setDialogState(() {
+                                      deadline = DateTime(
+                                        date.year,
+                                        date.month,
+                                        date.day,
+                                        time.hour,
+                                        time.minute
+                                      );
+                                    });
+                                  },
+                              ),
+                          ),
+                          if (deadline != null)
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              tooltip: '清除截止时间',
+                              onPressed: () {
+                                setDialogState(() {
+                                  deadline = null;
+                                });
+                              },
+                            )
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.pop(dialogContext);
+                      },
+                      child: const Text('取消'),
+                  ),
+                  FilledButton(
+                      onPressed: input.trim() == ''
+                        ? null
+                        : () {
+                            Navigator.pop(dialogContext, input.trim());
+                      },
+                      child: const Text('添加'),
+                  ),
+                ],
+              );
+            }
         );
       },
     );
 
     if (!mounted || result == null || result.isEmpty) {
       return;
-    }
-
-    // 默认没有截止时间。
-    DateTime? deadline;
-
-    final now = DateTime.now();
-
-    final date = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: DateTime(now.year, now.month, now.day),
-      lastDate: DateTime(now.year + 5, 12, 31),
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-// 只有选择了日期，才继续选择时间。
-    if (date != null) {
-      final time = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      // 日期和时间都选好了，才设置截止时间。
-      if (time != null) {
-        deadline = DateTime(
-          date.year,
-          date.month,
-          date.day,
-          time.hour,
-          time.minute,
-        );
-      }
     }
 
     setState(() {
