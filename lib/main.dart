@@ -1,6 +1,5 @@
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -60,88 +59,212 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> addEvent() async {
-    final now = DateTime.now();
-
-    final date = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: DateTime(now.year, 1, 1),
-      lastDate: DateTime(now.year + 5, 12, 31),
-    );
-
-    if (date == null) {
-      return;
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-
-    if (time == null) {
-      return;
-    }
-
-    final startTime = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
-    );
-
-    if (!mounted) {
-      return;
-    }
-
     String input = '';
+    DateTime? startTime, endTime;
 
-    final title = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('新增日程'),
-          content: TextField(
-            autofocus: true,
-            decoration: const InputDecoration(
-              hintText: '输入日程标题',
-            ),
-            onChanged: (value) {
-              input = value;
+    final result = await showDialog<String> (
+        context: context,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              final invalidTimeRange = startTime != null
+                  && endTime != null
+                  && endTime!.isBefore(startTime!);
+              return AlertDialog(
+                title: const Text('新增日程'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          hintText: '输入日程内容'
+                        ),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            input = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      const Text('开始时间'),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton.icon(
+                              icon: const Icon(Icons.calendar_month),
+                              label: Text(
+                                startTime == null
+                                    ? '未设置'
+                                    : formatDateTime(startTime!)
+                              ),
+                              onPressed: () async {
+                                final now = DateTime.now();
+
+                                final date = await showDatePicker(
+                                    context: context,
+                                    initialDate: startTime == null
+                                        || startTime!.isBefore(now)
+                                        ? now
+                                        : startTime,
+                                    firstDate: now,
+                                    lastDate: DateTime(
+                                      now.year + 5,
+                                      12,
+                                      31
+                                    )
+                                );
+
+                                if (!context.mounted || date == null) {
+                                  return;
+                                }
+
+                                final time = await showTimePicker(
+                                    context: context,
+                                    initialTime: startTime == null
+                                        ? TimeOfDay.fromDateTime(now)
+                                        : TimeOfDay.fromDateTime(startTime!)
+                                );
+
+                                if (!context.mounted || time == null) {
+                                  return;
+                                }
+
+                                setDialogState(() {
+                                  startTime = DateTime(
+                                    date.year,
+                                    date.month,
+                                    date.day,
+                                    time.hour,
+                                    time.minute
+                                  );
+                                });
+                              },
+                            )
+                          ),
+                        ],
+                      ),
+                      if (startTime == null)
+                        Text(
+                          '开始时间为必填项！',
+                          style: TextStyle(
+                            color: Colors.red
+                          ),
+                        ),
+                      const SizedBox(height: 20),
+                      const Text('结束时间（可选）'),
+                      Row(
+                        children: [
+                          Expanded(
+                              child: TextButton.icon(
+                                icon: const Icon(Icons.calendar_month),
+                                label: Text(
+                                    endTime == null
+                                        ? '未设置'
+                                        : formatDateTime(endTime!)
+                                ),
+                                onPressed: () async {
+                                  final now = DateTime.now();
+
+                                  final date = await showDatePicker(
+                                      context: context,
+                                      initialDate: endTime == null
+                                          || endTime!.isBefore(now)
+                                          ? now
+                                          : endTime,
+                                      firstDate: now,
+                                      lastDate: DateTime(
+                                          now.year + 5,
+                                          12,
+                                          31
+                                      )
+                                  );
+
+                                  if(!context.mounted || date == null) {
+                                    return;
+                                  }
+
+                                  final time = await showTimePicker(
+                                      context: context,
+                                      initialTime: endTime == null
+                                          ? TimeOfDay.fromDateTime(now)
+                                          : TimeOfDay.fromDateTime(endTime!)
+                                  );
+
+                                  if(!context.mounted || time == null) {
+                                    return;
+                                  }
+
+                                  setDialogState(() {
+                                    endTime = DateTime(
+                                        date.year,
+                                        date.month,
+                                        date.day,
+                                        time.hour,
+                                        time.minute
+                                    );
+                                  });
+                                },
+                              )
+                          ),
+                          if (endTime != null)
+                            IconButton(
+                              onPressed: () {
+                                setDialogState(() {
+                                  endTime = null;
+                                });
+                              },
+                            icon: const Icon(Icons.close),
+                            tooltip: '清除结束时间',
+                            )
+                        ]
+                      ),
+                      if(invalidTimeRange)
+                        Text(
+                            '开始时间不能晚于结束时间！',
+                            style: TextStyle(
+                              color: Colors.red
+                            ),
+                        )
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text('取消'),
+                  ),
+                  FilledButton(
+                      onPressed: input.trim() == ''
+                          || startTime == null
+                          || invalidTimeRange
+                          ? null
+                          : () {
+                          Navigator.pop(context, input.trim());
+                      },
+                      child: const Text('添加'),
+                  ),
+                ],
+              );
             },
-            onSubmitted: (value) {
-              Navigator.pop(dialogContext, value.trim());
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(dialogContext, input.trim());
-              },
-              child: const Text('添加'),
-            ),
-          ],
-        );
-      },
+          );
+        }
     );
 
-    if (!mounted || title == null || title.isEmpty) {
+    if (!mounted ||  result == null) {
       return;
     }
 
     setState(() {
       events.add(
         ScheduleEvent(
-          title: title,
-          startTime: startTime,
+          title: result,
+          startTime: startTime!,
+          endTime: endTime
         ),
       );
     });
@@ -230,7 +353,7 @@ class _HomePageState extends State<HomePage> {
                                   icon: const Icon(Icons.calendar_month),
                                   label: Text(
                                     deadline == null
-                                        ? '不设置'
+                                        ? '未设置'
                                         : formatDateTime(deadline!)
                                   ),
                                   onPressed: () async {
@@ -426,7 +549,19 @@ class _HomePageState extends State<HomePage> {
                 ),
               title: Text(title),
               subtitle: isSchedule
-                  ? Text(formatDateTime(events[index].startTime))
+                  ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                              '开始：${formatDateTime(events[index].startTime)}',
+                          ),
+                          if(events[index].endTime != null)
+                            Text(
+                              '结束：${formatDateTime(events[index].endTime!)}',
+                            )
+                        ],
+                  )
                   : todos[index].deadline == null
                     ? null
                     : Text('截止：${formatDateTime(todos[index].deadline!)}'),

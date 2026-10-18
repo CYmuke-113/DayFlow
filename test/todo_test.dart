@@ -7,7 +7,7 @@ void main() {
   test('旧待办没有截止日期时仍可读取', () {
     final todo = Todo.fromJson({'title': '旧待办', 'isDone': false});
 
-    expect(todo.dueDate, isNull);
+    expect(todo.deadline, isNull);
     expect(todo.title, '旧待办');
     expect(todo.isDone, isFalse);
   });
@@ -16,13 +16,13 @@ void main() {
     final todo = Todo(
       title: '提交作业',
       isDone: true,
-      dueDate: DateTime(2026, 10, 20),
+      deadline: DateTime(2026, 10, 20),
     );
     final restored = Todo.fromJson(
       jsonDecode(jsonEncode(todo.toJson())) as Map<String, dynamic>,
     );
 
-    expect(restored.dueDate, DateTime(2026, 10, 20));
+    expect(restored.deadline, DateTime(2026, 10, 20));
     expect(restored.title, todo.title);
     expect(restored.isDone, isTrue);
   });
@@ -30,6 +30,6 @@ void main() {
   test('未设置截止日期的待办保存后仍为空', () {
     final todo = Todo(title: '随时处理');
 
-    expect(Todo.fromJson(todo.toJson()).dueDate, isNull);
+    expect(Todo.fromJson(todo.toJson()).deadline, isNull);
   });
 }

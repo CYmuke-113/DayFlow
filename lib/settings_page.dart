@@ -10,7 +10,12 @@ class SettingsPage extends StatelessWidget {
         title: const Text('设置')
       ),
       body: const Center(
-        child: Text('敬请期待喵！'),
+        child: Text(
+            '敬请期待喵！',
+            style: TextStyle(
+              fontSize: 24
+            ),
+        ),
       ),
       bottomNavigationBar: const SafeArea(
           child: Padding(
@@ -19,7 +24,7 @@ class SettingsPage extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'DayFlow  |  1.2.0',
+                  'DayFlow  |  1.3.0',
                   style: TextStyle(color: Colors.grey),
                 ),
                 SizedBox(height: 4),
