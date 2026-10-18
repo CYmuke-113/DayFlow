@@ -2,8 +2,10 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'todo.dart';
 import 'schedule_event.dart';
+import 'settings_page.dart';
 
 void main() {
   runApp(const DayFlowApp());
@@ -333,6 +335,21 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(isSchedule ? '日程' : '代办'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.menu),
+            tooltip: '设置',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                    builder: (context) {
+                      return const SettingsPage();
+                    }
+                )
+              );
+            },
+          )
+        ],
       ),
 
       body: isLoading
