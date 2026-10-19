@@ -24,7 +24,7 @@ class SettingsPage extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'DayFlow  |  1.3.0',
+                  'DayFlow  |  1.4.0',
                   style: TextStyle(color: Colors.grey),
                 ),
                 SizedBox(height: 4),
